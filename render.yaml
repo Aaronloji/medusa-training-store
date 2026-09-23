@@ -8,9 +8,15 @@ services:
     rootDir: backend
     # NODE_ENV=production makes npm skip devDependencies, but `medusa build`
     # needs TypeScript tooling to load medusa-config.ts, so include them here.
-    buildCommand: npm ci --include=dev && npm run build && cd .medusa/server && npm ci --omit=dev
+    # Compiling needs ~1 GB of heap; the running server is capped lower (see startCommand).
+    buildCommand: >-
+      npm ci --include=dev &&
+      NODE_OPTIONS=--max-old-space-size=1536 npm run build &&
+      cd .medusa/server && npm ci --omit=dev
     # Migrations run on every boot; the seed is idempotent and only runs when RUN_SEED=true.
+    # The free instance has 512 MB of RAM, so keep the heap below that.
     startCommand: >-
+      export NODE_OPTIONS=--max-old-space-size=400 &&
       cd .medusa/server &&
       npm run predeploy &&
       if [ "$RUN_SEED" = "true" ]; then npm run seed:prod; fi &&
@@ -21,8 +27,6 @@ services:
         value: production
       - key: NODE_VERSION
         value: "20"
-      - key: NODE_OPTIONS
-        value: --max-old-space-size=460
       - key: DATABASE_URL
         sync: false # Neon connection string, e.g. postgresql://...neon.tech/neondb?sslmode=require
       - key: DATABASE_SSL
