@@ -1,0 +1,16 @@
+# Render's free plan sleeps after 15 minutes without traffic.
+# Pinging the backend keeps the live demo responsive for reviewers.
+# Set the repository variable BACKEND_URL (Settings → Secrets and variables → Actions → Variables).
+name: Keep demo awake
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    if: ${{ vars.BACKEND_URL != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -fsS --max-time 90 "${{ vars.BACKEND_URL }}/health" || true

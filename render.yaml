@@ -1,0 +1,45 @@
+# Render Blueprint for the Medusa backend (API + Admin dashboard).
+# The database lives on Neon (free Postgres), so DATABASE_URL is set manually.
+services:
+  - type: web
+    name: certpath-medusa
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm ci && npm run build && cd .medusa/server && npm ci --omit=dev
+    # Migrations run on every boot; the seed is idempotent and only runs when RUN_SEED=true.
+    startCommand: >-
+      cd .medusa/server &&
+      npm run predeploy &&
+      if [ "$RUN_SEED" = "true" ]; then npm run seed:prod; fi &&
+      npm run start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "20"
+      - key: NODE_OPTIONS
+        value: --max-old-space-size=460
+      - key: DATABASE_URL
+        sync: false # Neon connection string, e.g. postgresql://...neon.tech/neondb?sslmode=require
+      - key: DATABASE_SSL
+        value: "true"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: COOKIE_SECRET
+        generateValue: true
+      - key: STORE_CORS
+        sync: false # https://<your-storefront>.vercel.app
+      - key: ADMIN_CORS
+        sync: false # https://certpath-medusa.onrender.com
+      - key: AUTH_CORS
+        sync: false # both URLs above, comma separated
+      - key: MEDUSA_BACKEND_URL
+        sync: false # https://certpath-medusa.onrender.com
+      - key: RUN_SEED
+        value: "true"
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
