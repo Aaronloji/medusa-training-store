@@ -6,7 +6,9 @@ services:
     runtime: node
     plan: free
     rootDir: backend
-    buildCommand: npm ci && npm run build && cd .medusa/server && npm ci --omit=dev
+    # NODE_ENV=production makes npm skip devDependencies, but `medusa build`
+    # needs TypeScript tooling to load medusa-config.ts, so include them here.
+    buildCommand: npm ci --include=dev && npm run build && cd .medusa/server && npm ci --omit=dev
     # Migrations run on every boot; the seed is idempotent and only runs when RUN_SEED=true.
     startCommand: >-
       cd .medusa/server &&
