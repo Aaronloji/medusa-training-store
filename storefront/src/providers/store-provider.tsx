@@ -61,6 +61,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [customerLoading, setCustomerLoading] = useState(true)
 
   const loadCustomer = useCallback(async () => {
+    // Skip the request (and a 401 in the console) for visitors who never signed in.
+    let hasToken = false
+    try {
+      hasToken = !!window.localStorage.getItem("medusa_auth_token")
+    } catch {
+      // storage unavailable (private mode): treat as signed out
+    }
+    if (!hasToken) {
+      setCustomer(null)
+      setCustomerLoading(false)
+      return
+    }
     try {
       const { customer } = await sdk.store.customer.retrieve()
       setCustomer(customer)

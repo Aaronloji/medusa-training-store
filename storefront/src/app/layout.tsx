@@ -3,6 +3,7 @@ import { Fraunces, Plus_Jakarta_Sans } from "next/font/google"
 import { Footer } from "@/components/footer"
 import { Header } from "@/components/header"
 import { WakeBanner } from "@/components/wake-banner"
+import { SITE_URL } from "@/lib/server-api"
 import { StoreProvider } from "@/providers/store-provider"
 import "./globals.css"
 
@@ -10,6 +11,7 @@ const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-jakart
 const fraunces = Fraunces({ subsets: ["latin"], variable: "--font-fraunces" })
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
     default: "CertPath: Compliance training, certified",
     template: "%s · CertPath",

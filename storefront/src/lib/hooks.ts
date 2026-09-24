@@ -10,9 +10,10 @@ type Result<T> = { key: string; data?: T; error?: string }
 /**
  * Fetches data for a given key. Loading state is derived from whether the
  * stored result belongs to the current key, so no state is set synchronously
- * inside the effect.
+ * inside the effect. `initialData` (server-rendered) is shown until the
+ * client fetch for the current key resolves, so there is no loading flash.
  */
-function useKeyedFetch<T>(key: string | null, fetcher: () => Promise<T>) {
+function useKeyedFetch<T>(key: string | null, fetcher: () => Promise<T>, initialData?: T | null) {
   const [result, setResult] = useState<Result<T> | null>(null)
 
   useEffect(() => {
@@ -27,28 +28,35 @@ function useKeyedFetch<T>(key: string | null, fetcher: () => Promise<T>) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- the key captures every input
   }, [key])
 
-  const loading = !key || result?.key !== key
+  const current = key && result?.key === key ? result : null
+  const data = current?.data ?? (current?.error ? null : (initialData ?? null))
   return {
-    data: loading ? null : (result?.data ?? null),
-    error: loading ? null : (result?.error ?? null),
-    loading,
-    setData: (data: T) => key && setResult({ key, data }),
+    data,
+    error: current?.error ?? null,
+    loading: !data && !current,
+    setData: (next: T) => key && setResult({ key, data: next }),
   }
 }
 
-export function useCourses(level?: Level) {
+export function useCourses(level?: Level, initialCourses?: Course[] | null) {
   const { backendStatus, region } = useStore()
   const key = backendStatus === "ready" ? `courses:${region?.id}:${level ?? "all"}` : null
-  const { data, loading, error } = useKeyedFetch<Course[]>(key, () =>
-    listCourses(region?.id, level)
+  const { data, loading, error } = useKeyedFetch<Course[]>(
+    key,
+    () => listCourses(region?.id, level),
+    initialCourses
   )
   return { data, loading, error }
 }
 
-export function useCourse(handle: string) {
+export function useCourse(handle: string, initialCourse?: Course | null) {
   const { backendStatus, region } = useStore()
   const key = backendStatus === "ready" ? `course:${region?.id}:${handle}` : null
-  const { data, loading, error } = useKeyedFetch<Course>(key, () => getCourse(handle, region?.id))
+  const { data, loading, error } = useKeyedFetch<Course>(
+    key,
+    () => getCourse(handle, region?.id),
+    initialCourse
+  )
   return { data, loading, error }
 }
 
@@ -66,6 +74,7 @@ export function useEnrollments() {
 
   return {
     ...state,
+    loading: state.loading || customerLoading,
     reload: () => setVersion((v) => v + 1),
   }
 }
