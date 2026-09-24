@@ -43,6 +43,12 @@ services:
         sync: false # both URLs above, comma separated
       - key: MEDUSA_BACKEND_URL
         sync: false # https://certpath-medusa.onrender.com
+      - key: STOREFRONT_URL
+        value: https://medusa-training-store.vercel.app # used in certificate email links
+      - key: RESEND_API_KEY
+        sync: false # optional: without it, certificate emails are logged (dry run)
+      - key: RESEND_FROM
+        sync: false # e.g. CertPath <certificates@yourdomain.com>
       - key: RUN_SEED
         value: "true"
       - key: ADMIN_EMAIL

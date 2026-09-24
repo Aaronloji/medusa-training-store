@@ -1,33 +1,24 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { sendCertificateNotificationWorkflow } from "../workflows/send-certificate-notification"
 
 /**
- * Fired by the complete-lesson workflow when a customer finishes a course.
- * This is where a certificate email would be sent through the Notification
- * Module (e.g. SendGrid / Resend provider) once one is configured.
+ * Fired by the complete-lesson workflow when a learner finishes a course:
+ * emails the certificate and notifies admins in the dashboard feed.
  */
 export default async function enrollmentCompletedHandler({
   event: { data },
   container,
 }: SubscriberArgs<{ id: string }>) {
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
-  const query = container.resolve(ContainerRegistrationKeys.QUERY)
-
-  const { data: enrollments } = await query.graph({
-    entity: "enrollment",
-    fields: ["id", "certificate_code", "expires_at", "course.title", "customer.email"],
-    filters: { id: data.id },
-  })
-  const enrollment = enrollments[0]
-  if (!enrollment) {
-    return
+  try {
+    await sendCertificateNotificationWorkflow(container).run({
+      input: { enrollment_id: data.id },
+    })
+  } catch (e) {
+    // A notification failure must never undo the learner's progress.
+    logger.error(`Certificate notification failed for ${data.id}: ${(e as Error).message}`)
   }
-
-  logger.info(
-    `Certificate ${enrollment.certificate_code} issued to ${
-      enrollment.customer?.email ?? "customer"
-    } for "${enrollment.course?.title}"`
-  )
 }
 
 export const config: SubscriberConfig = {
