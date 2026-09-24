@@ -24,6 +24,7 @@ A full-stack **compliance training marketplace** built on **Medusa v2**. Learner
 - **Read-only demo admin**: a custom `/admin/*` middleware blocks every write request from the public demo account. A **migration script** creates that account once on deploy.
 - **Digital products**: no shipping profile and no inventory, so the standard cart → payment → order flow skips shipping.
 - An **idempotent seed** (safe to run on every deploy) and unit-tested business logic.
+- **Realistic demo data** created through Medusa workflows: 14 orders placed via cart → payment → order (captured payments, promo codes), customers with addresses, B2B customer groups with a price list, a campaign with promotions, categories, collections and tags, and learner progress including an expired certificate. It runs once on deploy as a migration script.
 
 **Next.js 16 storefront** (`/storefront`)
 - Built with the official **`@medusajs/js-sdk`**: JWT customer auth, carts, payment sessions and order completion.

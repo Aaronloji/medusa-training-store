@@ -14,7 +14,7 @@ import { createCourseWorkflow } from "../workflows/create-course"
 
 const DEMO_CUSTOMER = { email: "demo@learner.com", password: "demo1234" }
 
-const COURSES = [
+export const COURSES = [
   {
     handle: "osha-10-construction",
     title: "OSHA 10-Hour Construction",
@@ -77,6 +77,87 @@ const COURSES = [
       { title: "Load Handling", duration_minutes: 40 },
       { title: "Pre-shift Inspection", duration_minutes: 20 },
       { title: "Pedestrian Safety", duration_minutes: 25 },
+    ],
+  },
+  {
+    handle: "hazard-communication-ghs",
+    title: "Hazard Communication (GHS)",
+    description:
+      "Understand chemical labels, Safety Data Sheets and pictograms under OSHA's Hazard Communication Standard.",
+    level: "beginner" as const,
+    certificate_validity_days: 365,
+    price: 29,
+    thumbnail: "https://images.unsplash.com/photo-1628177142898-93e36e4e3a50?w=1200&q=80",
+    lessons: [
+      { title: "Your Right to Know", duration_minutes: 20 },
+      { title: "Reading GHS Labels", duration_minutes: 25 },
+      { title: "Safety Data Sheets", duration_minutes: 30 },
+      { title: "Safe Handling & Storage", duration_minutes: 25 },
+    ],
+  },
+  {
+    handle: "bloodborne-pathogens",
+    title: "Bloodborne Pathogens",
+    description:
+      "OSHA-required annual training on HIV, HBV and HCV exposure prevention for healthcare and first-aid responders.",
+    level: "intermediate" as const,
+    certificate_validity_days: 365,
+    price: 25,
+    thumbnail: "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=1200&q=80",
+    lessons: [
+      { title: "Understanding Bloodborne Diseases", duration_minutes: 25 },
+      { title: "Exposure Control Plans", duration_minutes: 20 },
+      { title: "Personal Protective Equipment", duration_minutes: 20 },
+      { title: "Post-Exposure Procedures", duration_minutes: 15 },
+    ],
+  },
+  {
+    handle: "hot-work-welding-safety",
+    title: "Hot Work & Welding Safety",
+    description:
+      "Prevent fires, burns and toxic fume exposure during welding, cutting and brazing operations.",
+    level: "advanced" as const,
+    certificate_validity_days: 2 * 365,
+    price: 69,
+    thumbnail: "https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?w=1200&q=80",
+    lessons: [
+      { title: "Hot Work Permits", duration_minutes: 30 },
+      { title: "Fire Watch Duties", duration_minutes: 25 },
+      { title: "Fumes and Ventilation", duration_minutes: 35 },
+      { title: "Welding PPE", duration_minutes: 25 },
+      { title: "Confined Space Considerations", duration_minutes: 30 },
+    ],
+  },
+  {
+    handle: "workplace-harassment-prevention",
+    title: "Workplace Harassment Prevention",
+    description:
+      "Recognize, prevent and report harassment and discrimination. Meets state requirements for employees and supervisors.",
+    level: "beginner" as const,
+    certificate_validity_days: 2 * 365,
+    price: 35,
+    thumbnail: "https://images.unsplash.com/photo-1521791136064-7986c2920216?w=1200&q=80",
+    lessons: [
+      { title: "What Counts as Harassment", duration_minutes: 30 },
+      { title: "Bystander Intervention", duration_minutes: 25 },
+      { title: "Reporting and Retaliation", duration_minutes: 20 },
+      { title: "Responsibilities of Supervisors", duration_minutes: 25 },
+    ],
+  },
+  {
+    handle: "cybersecurity-awareness",
+    title: "Cybersecurity Awareness for Employees",
+    description:
+      "Spot phishing, protect sensitive data and build secure habits. A common requirement for SOC 2 and HIPAA programs.",
+    level: "beginner" as const,
+    certificate_validity_days: 365,
+    price: 19,
+    thumbnail: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=1200&q=80",
+    lessons: [
+      { title: "Phishing and Social Engineering", duration_minutes: 20 },
+      { title: "Passwords and MFA", duration_minutes: 15 },
+      { title: "Handling Sensitive Data", duration_minutes: 20 },
+      { title: "Reporting Incidents", duration_minutes: 10 },
     ],
   },
 ]
