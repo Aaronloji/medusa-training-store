@@ -4,8 +4,8 @@ A full-stack **compliance training marketplace** built on **Medusa v2**. Learner
 
 | | |
 | --- | --- |
-| 🛒 **Storefront** | `https://<your-app>.vercel.app` |
-| 🛠️ **Admin dashboard** | `https://<your-backend>.onrender.com/app` |
+| 🛒 **Storefront** | https://medusa-training-store.vercel.app |
+| 🛠️ **Admin dashboard** | https://certpath-medusa.onrender.com/app |
 | 👤 **Demo learner** | `demo@learner.com` / `demo1234` |
 
 > The backend runs on a free Render instance. If it has been idle, the first request can take up to a minute while it wakes up; the storefront shows a banner while that happens.
