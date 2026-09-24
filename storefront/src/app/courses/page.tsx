@@ -2,7 +2,8 @@ import type { Metadata } from "next"
 import { CoursesView } from "@/components/views/courses-view"
 import { getCoursesServer } from "@/lib/server-api"
 
-export const revalidate = 300
+// See app/page.tsx: per-request render, 5-minute data cache.
+export const dynamic = "force-dynamic"
 
 export const metadata: Metadata = {
   title: "All courses",

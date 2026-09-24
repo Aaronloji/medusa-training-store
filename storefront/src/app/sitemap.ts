@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next"
 import { getCoursesServer, SITE_URL } from "@/lib/server-api"
 
-export const revalidate = 3600
+export const dynamic = "force-dynamic"
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const courses = (await getCoursesServer()) ?? []

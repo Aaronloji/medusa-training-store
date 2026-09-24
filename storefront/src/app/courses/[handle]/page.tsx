@@ -2,15 +2,11 @@ import type { Metadata } from "next"
 import { CourseDetailView } from "@/components/views/course-detail-view"
 import { getCourseServer, SITE_URL } from "@/lib/server-api"
 
-export const revalidate = 300
+// Per-request render with a 5-minute data cache (see app/page.tsx), so a page
+// first visited while the demo API sleeps is never cached without its course.
+export const dynamic = "force-dynamic"
 
 type Props = { params: Promise<{ handle: string }> }
-
-// No pages are built ahead of time (the demo backend may be asleep during the build).
-// Each course page is rendered on its first visit, then cached and revalidated (ISR).
-export async function generateStaticParams() {
-  return []
-}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { handle } = await params

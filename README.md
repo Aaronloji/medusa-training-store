@@ -30,7 +30,7 @@ A full-stack **compliance training marketplace** built on **Medusa v2**. Learner
 | **Production topology**: Redis event bus, workflow engine and locking, plus **server/worker split** (`workerMode`), Dockerfile and compose file | `medusa-config.ts`, `Dockerfile`, `docker-compose.production.yml` |
 
 **Next.js 16 storefront** (`/storefront`)
-- **Server-rendered catalog and course pages** with ISR (5-minute revalidation), per-course metadata, Open Graph images, **schema.org `Course` JSON-LD**, and a `sitemap.xml` and `robots.txt`. If the API is unreachable, pages fall back to client-side fetching instead of failing.
+- **Server-rendered catalog and course pages**: rendered per request, with Store API responses in the Next.js Data Cache for 5 minutes. They include per-course metadata, Open Graph images, **schema.org `Course` JSON-LD**, and a `sitemap.xml` and `robots.txt`. If the API is unreachable, pages fall back to client-side fetching instead of failing, and an outage is never baked into a prerendered page.
 - Built with the official **`@medusajs/js-sdk`**: JWT customer auth, carts, payment sessions and order completion.
 - Checkout, a "My learning" dashboard, a lesson player with progress tracking, a printable certificate, and **public certificate verification**.
 
@@ -39,7 +39,7 @@ A full-stack **compliance training marketplace** built on **Medusa v2**. Learner
 ```
                          ┌──────────────────────────── Medusa v2 ────────────────────────────┐
  Next.js (Vercel)        │                                                                   │
- SSR/ISR catalog ──────► │ /store/courses ── Query (course + product link + QueryContext)    │
+ SSR catalog ──────────► │ /store/courses ── Query (course + product link + QueryContext)    │
  checkout ─────────────► │ create/add/complete cart ── hooks.validate: already owned? ──┐    │
                          │                    │ order.placed                            ✗ 400 │
                          │                    ▼                                              │
