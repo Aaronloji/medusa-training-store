@@ -31,7 +31,6 @@ import { enrollCustomerFromOrderWorkflow } from "../workflows/enroll-customer-fr
 import seedTrainingData, { COURSES } from "./seed"
 
 const DAY_MS = 24 * 60 * 60 * 1000
-const MARKER_EMAIL = "olivia.martinez@example.com"
 const PRICE_BY_HANDLE = new Map(COURSES.map((c) => [c.handle, c.price]))
 
 const CATEGORIES: Record<string, string[]> = {
@@ -134,13 +133,18 @@ const ORDERS: {
 
 /**
  * Populates every admin section with realistic demo data using Medusa's own
- * workflows. Safe to call more than once: it stops if the data already exists.
+ * workflows. Resumable: each section only creates what is still missing.
  */
 export async function seedDemoData(container: MedusaContainer) {
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
   const query = container.resolve(ContainerRegistrationKeys.QUERY)
   const knex = container.resolve(ContainerRegistrationKeys.PG_CONNECTION)
   const customerService = container.resolve(Modules.CUSTOMER)
+  const productService = container.resolve(Modules.PRODUCT)
+  const salesChannelService = container.resolve(Modules.SALES_CHANNEL)
+  const orderService = container.resolve(Modules.ORDER)
+  const promotionService = container.resolve(Modules.PROMOTION)
+  const pricingService = container.resolve(Modules.PRICING)
 
   // Each section is isolated: a failure is logged and the rest keeps going.
   const section = async (name: string, fn: () => Promise<void>) => {
@@ -150,12 +154,6 @@ export async function seedDemoData(container: MedusaContainer) {
     } catch (e) {
       logger.warn(`[demo-data] ${name}: skipped (${(e as Error).message})`)
     }
-  }
-
-  const [marker] = await customerService.listCustomers({ email: MARKER_EMAIL })
-  if (marker) {
-    logger.info("[demo-data] Demo data already present, skipping.")
-    return
   }
 
   // Base catalog, region, sales channel and publishable key.
@@ -196,6 +194,8 @@ export async function seedDemoData(container: MedusaContainer) {
   })
 
   await section("Catalog taxonomy", async () => {
+    const existing = await productService.listProductCategories({ name: "Workplace Safety" })
+    if (existing.length) return
     const { result: categories } = await createProductCategoriesWorkflow(container).run({
       input: {
         product_categories: Object.keys(CATEGORIES).map((name) => ({
@@ -237,6 +237,8 @@ export async function seedDemoData(container: MedusaContainer) {
   })
 
   await section("B2B sales channel", async () => {
+    const existing = await salesChannelService.listSalesChannels({ name: "B2B Portal" })
+    if (existing.length) return
     const { result } = await createSalesChannelsWorkflow(container).run({
       input: {
         salesChannelsData: [
@@ -250,6 +252,8 @@ export async function seedDemoData(container: MedusaContainer) {
   })
 
   await section("Return reasons", async () => {
+    const existing = await orderService.listReturnReasons({ value: "not_needed" })
+    if (existing.length) return
     await createReturnReasonsWorkflow(container).run({
       input: {
         data: [
@@ -266,22 +270,31 @@ export async function seedDemoData(container: MedusaContainer) {
   const groupIds: Partial<Record<Exclude<Group, null>, string>> = {}
 
   await section("Customers", async () => {
-    const { result } = await createCustomersWorkflow(container).run({
-      input: {
-        customersData: CUSTOMERS.map((c) => ({
-          first_name: c.first,
-          last_name: c.last,
-          email: `${c.first}.${c.last}@example.com`.toLowerCase(),
-          company_name: c.company,
-          phone: `+1 555 01${String(CUSTOMERS.indexOf(c)).padStart(2, "0")}`,
-        })),
-      },
-    })
-    customerIds.push(...result.map((c) => c.id))
+    const emailOf = (c: (typeof CUSTOMERS)[number]) => `${c.first}.${c.last}@example.com`.toLowerCase()
+    const existing = await customerService.listCustomers({ email: CUSTOMERS.map(emailOf) })
+    const idByEmail = new Map(existing.map((c) => [c.email, c.id]))
+    const missing = CUSTOMERS.map((c, i) => ({ c, i })).filter(({ c }) => !idByEmail.has(emailOf(c)))
+
+    if (missing.length) {
+      const { result } = await createCustomersWorkflow(container).run({
+        input: {
+          customersData: missing.map(({ c, i }) => ({
+            first_name: c.first,
+            last_name: c.last,
+            email: emailOf(c),
+            company_name: c.company,
+            phone: `+1 555 01${String(i).padStart(2, "0")}`,
+          })),
+        },
+      })
+      result.forEach((created) => idByEmail.set(created.email, created.id))
+    }
+    customerIds.push(...CUSTOMERS.map((c) => idByEmail.get(emailOf(c))!))
+    if (!missing.length) return
 
     await createCustomerAddressesWorkflow(container).run({
       input: {
-        addresses: CUSTOMERS.map((c, i) => ({
+        addresses: missing.map(({ c, i }) => ({
           customer_id: customerIds[i],
           first_name: c.first,
           last_name: c.last,
@@ -298,6 +311,15 @@ export async function seedDemoData(container: MedusaContainer) {
   })
 
   await section("Customer groups", async () => {
+    const names = ["Healthcare employers", "Construction companies", "Restaurants & hospitality"]
+    const existing = await customerService.listCustomerGroups({ name: { $in: names } })
+    if (existing.length === names.length) {
+      const idOf = (name: string) => existing.find((g) => g.name === name)!.id
+      groupIds.healthcare = idOf(names[0])
+      groupIds.construction = idOf(names[1])
+      groupIds.hospitality = idOf(names[2])
+      return
+    }
     const { result } = await createCustomerGroupsWorkflow(container).run({
       input: {
         customersData: [
@@ -322,6 +344,8 @@ export async function seedDemoData(container: MedusaContainer) {
   })
 
   await section("Promotions & campaign", async () => {
+    const existing = await promotionService.listPromotions({ code: "SAFETY10" })
+    if (existing.length) return
     const { result: campaigns } = await createCampaignsWorkflow(container).run({
       input: {
         campaignsData: [
@@ -394,6 +418,8 @@ export async function seedDemoData(container: MedusaContainer) {
   })
 
   await section("B2B price list", async () => {
+    const existing = await pricingService.listPriceLists({}, { select: ["id", "title"] })
+    if (existing.some((p) => p.title === "B2B volume pricing")) return
     const groups = Object.values(groupIds).filter(Boolean) as string[]
     await createPriceListsWorkflow(container).run({
       input: {
@@ -425,6 +451,8 @@ export async function seedDemoData(container: MedusaContainer) {
         const c = CUSTOMERS[order.customer]
         if (!customerId) continue
         const email = `${c.first}.${c.last}@example.com`.toLowerCase()
+        const previous = await orderService.listOrders({ customer_id: customerId }, { take: 1 })
+        if (previous.length) continue
 
         const { result: cart } = await createCartWorkflow(container).run({
           input: {
@@ -561,6 +589,8 @@ export async function seedDemoData(container: MedusaContainer) {
       { courses: ["food-handler-certificate", "cybersecurity-awareness"], progress: [Infinity, 2] },
     ]
     const trainingService: TrainingModuleService = container.resolve(TRAINING_MODULE)
+    const existing = await trainingService.listEnrollments({ customer_id: demo.id })
+    if (existing.length) return
     for (const o of demoOrders) {
       const { data: courses } = await query.graph({
         entity: "course",
