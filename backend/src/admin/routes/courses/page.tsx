@@ -1,6 +1,5 @@
 import { defineRouteConfig } from "@medusajs/admin-sdk"
-import { AcademicCap } from "@medusajs/icons"
-import { Trash } from "@medusajs/icons"
+import { AcademicCap, Trash } from "@medusajs/icons"
 import {
   Badge,
   Container,
@@ -11,29 +10,20 @@ import {
   toast,
   usePrompt,
 } from "@medusajs/ui"
-import { useEffect, useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
+import { CreateCourseModal } from "../../components/create-course-modal"
+import { levelColor } from "../../lib/constants"
+import { useCourses, useDeleteCourse } from "../../lib/queries"
 import type { AdminCourse } from "../../types"
 
-const levelColor = {
-  beginner: "green",
-  intermediate: "orange",
-  advanced: "red",
-} as const
-
 const CoursesPage = () => {
-  const [courses, setCourses] = useState<AdminCourse[]>([])
-  const [loading, setLoading] = useState(true)
+  const { data, isLoading, isError, error } = useCourses()
+  const deleteCourse = useDeleteCourse()
   const prompt = usePrompt()
+  const navigate = useNavigate()
+  const courses = data?.courses ?? []
 
-  useEffect(() => {
-    fetch("/admin/courses", { credentials: "include" })
-      .then((res) => res.json())
-      .then(({ courses }) => setCourses(courses))
-      .finally(() => setLoading(false))
-  }, [])
-
-  const deleteCourse = async (course: AdminCourse) => {
+  const confirmDelete = async (course: AdminCourse) => {
     const confirmed = await prompt({
       title: "Delete course?",
       description: `"${course.title}" will be removed from the catalog. Existing enrollments are kept.`,
@@ -41,19 +31,17 @@ const CoursesPage = () => {
       cancelText: "Cancel",
     })
     if (!confirmed) return
-
-    const res = await fetch(`/admin/courses/${course.id}`, {
-      method: "DELETE",
-      credentials: "include",
+    deleteCourse.mutate(course.id, {
+      onSuccess: () => toast.success(`Deleted "${course.title}"`),
+      onError: (e) => toast.error(e.message),
     })
-    if (!res.ok) {
-      const { message } = await res.json().catch(() => ({ message: "" }))
-      toast.error(message || "The course could not be deleted")
-      return
-    }
-    setCourses((all) => all.filter((c) => c.id !== course.id))
-    toast.success(`Deleted "${course.title}"`)
   }
+
+  const learners = courses.reduce((n, c) => n + (c.enrollments?.length ?? 0), 0)
+  const certified = courses.reduce(
+    (n, c) => n + (c.enrollments?.filter((e) => e.status === "completed").length ?? 0),
+    0
+  )
 
   return (
     <Container className="divide-y p-0">
@@ -61,10 +49,16 @@ const CoursesPage = () => {
         <div>
           <Heading level="h1">Courses</Heading>
           <Text size="small" className="text-ui-fg-subtle">
-            Training courses sold through the catalog
+            {courses.length} courses · {learners} enrollments · {certified} certificates issued
           </Text>
         </div>
+        <CreateCourseModal />
       </div>
+
+      {isError && (
+        <Text className="px-6 py-4 text-ui-fg-error">Could not load courses: {error.message}</Text>
+      )}
+
       <Table>
         <Table.Header>
           <Table.Row>
@@ -78,42 +72,50 @@ const CoursesPage = () => {
           </Table.Row>
         </Table.Header>
         <Table.Body>
-          {loading && (
+          {isLoading && (
             <Table.Row>
               <Table.Cell>Loading…</Table.Cell>
             </Table.Row>
           )}
-          {!loading && !courses.length && (
+          {!isLoading && !courses.length && (
             <Table.Row>
-              <Table.Cell>No courses yet. Create one with POST /admin/courses.</Table.Cell>
+              <Table.Cell>No courses yet. Use "Create course" to add the first one.</Table.Cell>
             </Table.Row>
           )}
           {courses.map((course) => (
-            <Table.Row key={course.id}>
-              <Table.Cell>{course.title}</Table.Cell>
+            <Table.Row
+              key={course.id}
+              className="cursor-pointer"
+              onClick={() => navigate(`/courses/${course.id}`)}
+            >
+              <Table.Cell className="font-medium">{course.title}</Table.Cell>
               <Table.Cell>
-                <Badge color={levelColor[course.level]}>{course.level}</Badge>
+                <Badge size="2xsmall" color={levelColor[course.level]}>
+                  {course.level}
+                </Badge>
               </Table.Cell>
               <Table.Cell>{course.lessons?.length ?? 0}</Table.Cell>
               <Table.Cell>{course.enrollments?.length ?? 0}</Table.Cell>
-              <Table.Cell>
+              <Table.Cell onClick={(e) => e.stopPropagation()}>
                 {course.product ? (
-                  <Link to={`/products/${course.product.id}`}>{course.product.title}</Link>
+                  <Link to={`/products/${course.product.id}`} className="text-ui-fg-interactive">
+                    {course.product.title}
+                  </Link>
                 ) : (
                   "—"
                 )}
               </Table.Cell>
               <Table.Cell>
-                <Badge color={course.is_published ? "green" : "grey"}>
+                <Badge size="2xsmall" color={course.is_published ? "green" : "grey"}>
                   {course.is_published ? "Published" : "Draft"}
                 </Badge>
               </Table.Cell>
-              <Table.Cell className="text-right">
+              <Table.Cell className="text-right" onClick={(e) => e.stopPropagation()}>
                 <IconButton
                   size="small"
                   variant="transparent"
                   aria-label={`Delete ${course.title}`}
-                  onClick={() => deleteCourse(course)}
+                  onClick={() => confirmDelete(course)}
                 >
                   <Trash />
                 </IconButton>

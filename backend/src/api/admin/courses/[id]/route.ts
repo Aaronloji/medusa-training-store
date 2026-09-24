@@ -1,26 +1,44 @@
-import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import type {
+  AuthenticatedMedusaRequest,
+  MedusaRequest,
+  MedusaResponse,
+} from "@medusajs/framework/http"
 import { ContainerRegistrationKeys, MedusaError } from "@medusajs/framework/utils"
 import { TRAINING_MODULE } from "../../../../modules/training"
 import TrainingModuleService from "../../../../modules/training/service"
+import { updateCourseWorkflow } from "../../../../workflows/update-course"
+import type { PostAdminUpdateCourseType } from "../../../validators"
 import { ADMIN_COURSE_FIELDS } from "../route"
 
-export async function GET(req: MedusaRequest, res: MedusaResponse) {
+async function getCourse(req: MedusaRequest, id: string) {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
-
   const { data } = await query.graph({
     entity: "course",
     fields: ADMIN_COURSE_FIELDS,
-    filters: { id: req.params.id },
+    filters: { id },
+  })
+  if (!data.length) {
+    throw new MedusaError(MedusaError.Types.NOT_FOUND, `Course ${id} was not found`)
+  }
+  return data[0]
+}
+
+export async function GET(req: MedusaRequest, res: MedusaResponse) {
+  res.json({ course: await getCourse(req, req.params.id) })
+}
+
+export async function POST(
+  req: AuthenticatedMedusaRequest<PostAdminUpdateCourseType>,
+  res: MedusaResponse
+) {
+  // Fails with 404 before running the workflow if the course doesn't exist.
+  await getCourse(req, req.params.id)
+
+  await updateCourseWorkflow(req.scope).run({
+    input: { id: req.params.id, ...req.validatedBody },
   })
 
-  if (!data.length) {
-    throw new MedusaError(
-      MedusaError.Types.NOT_FOUND,
-      `Course ${req.params.id} was not found`
-    )
-  }
-
-  res.json({ course: data[0] })
+  res.json({ course: await getCourse(req, req.params.id) })
 }
 
 export async function DELETE(req: MedusaRequest, res: MedusaResponse) {

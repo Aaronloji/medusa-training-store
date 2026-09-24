@@ -24,6 +24,18 @@ export const PostAdminCreateCourse = z.object({
 
 export type PostAdminCreateCourseType = z.infer<typeof PostAdminCreateCourse>
 
+export const PostAdminUpdateCourse = z
+  .object({
+    title: z.string().min(1),
+    description: z.string().nullish(),
+    level: z.enum(["beginner", "intermediate", "advanced"]),
+    certificate_validity_days: z.number().int().positive().nullish(),
+    is_published: z.boolean(),
+  })
+  .partial()
+
+export type PostAdminUpdateCourseType = z.infer<typeof PostAdminUpdateCourse>
+
 export const PostStoreCompleteLesson = z.object({
   lesson_id: z.string().min(1),
 })

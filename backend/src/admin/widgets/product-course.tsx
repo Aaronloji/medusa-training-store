@@ -1,37 +1,29 @@
 import { defineWidgetConfig } from "@medusajs/admin-sdk"
 import type { AdminProduct, DetailWidgetProps } from "@medusajs/framework/types"
 import { Badge, Container, Heading, Text } from "@medusajs/ui"
-import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
-import type { AdminCourse } from "../types"
+import { useProductCourse } from "../lib/queries"
 
 // Shows the course linked to a product on the product details page.
 const ProductCourseWidget = ({ data: product }: DetailWidgetProps<AdminProduct>) => {
-  const [course, setCourse] = useState<AdminCourse | null>(null)
-  const [loading, setLoading] = useState(true)
+  const { data, isLoading } = useProductCourse(product.id)
+  const course = data?.course
 
-  useEffect(() => {
-    fetch(`/admin/products/${product.id}/course`, { credentials: "include" })
-      .then((res) => res.json())
-      .then(({ course }) => setCourse(course))
-      .finally(() => setLoading(false))
-  }, [product.id])
-
-  const activeLearners =
-    course?.enrollments?.filter((e) => e.status === "active").length ?? 0
+  const activeLearners = course?.enrollments?.filter((e) => e.status === "active").length ?? 0
+  const certified = course?.enrollments?.filter((e) => e.status === "completed").length ?? 0
 
   return (
     <Container className="divide-y p-0">
       <div className="flex items-center justify-between px-6 py-4">
         <Heading level="h2">Training course</Heading>
         {course && (
-          <Badge color={course.is_published ? "green" : "grey"}>
+          <Badge size="2xsmall" color={course.is_published ? "green" : "grey"}>
             {course.is_published ? "Published" : "Draft"}
           </Badge>
         )}
       </div>
       <div className="px-6 py-4">
-        {loading ? (
+        {isLoading ? (
           <Text size="small">Loading…</Text>
         ) : !course ? (
           <Text size="small" className="text-ui-fg-subtle">
@@ -41,8 +33,8 @@ const ProductCourseWidget = ({ data: product }: DetailWidgetProps<AdminProduct>)
           <div className="flex flex-col gap-y-2">
             <Text weight="plus">{course.title}</Text>
             <Text size="small" className="text-ui-fg-subtle">
-              {course.lessons?.length ?? 0} lessons · level {course.level} · {activeLearners}{" "}
-              active learner(s)
+              {course.lessons?.length ?? 0} lessons · {activeLearners} learning · {certified}{" "}
+              certified
             </Text>
             <Text size="small" className="text-ui-fg-subtle">
               Certificate validity:{" "}
@@ -50,8 +42,8 @@ const ProductCourseWidget = ({ data: product }: DetailWidgetProps<AdminProduct>)
                 ? `${course.certificate_validity_days} days`
                 : "does not expire"}
             </Text>
-            <Link to="/courses" className="text-ui-fg-interactive txt-small">
-              View all courses →
+            <Link to={`/courses/${course.id}`} className="txt-small text-ui-fg-interactive">
+              Manage course →
             </Link>
           </div>
         )}

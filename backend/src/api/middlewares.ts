@@ -4,7 +4,11 @@ import {
   validateAndTransformBody,
 } from "@medusajs/framework/http"
 import { blockDemoAdminWrites } from "../lib/demo-admin"
-import { PostAdminCreateCourse, PostStoreCompleteLesson } from "./validators"
+import {
+  PostAdminCreateCourse,
+  PostAdminUpdateCourse,
+  PostStoreCompleteLesson,
+} from "./validators"
 
 export default defineMiddlewares({
   routes: [
@@ -23,6 +27,11 @@ export default defineMiddlewares({
       matcher: "/admin/courses",
       method: "POST",
       middlewares: [validateAndTransformBody(PostAdminCreateCourse)],
+    },
+    {
+      matcher: "/admin/courses/:id",
+      method: "POST",
+      middlewares: [validateAndTransformBody(PostAdminUpdateCourse)],
     },
     {
       matcher: "/store/customers/me/enrollments*",

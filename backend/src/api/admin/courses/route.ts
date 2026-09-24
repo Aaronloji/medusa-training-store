@@ -14,6 +14,12 @@ export const ADMIN_COURSE_FIELDS = [
   "product.title",
   "enrollments.id",
   "enrollments.status",
+  "enrollments.progress_percent",
+  "enrollments.created_at",
+  // Resolved through the read-only enrollment → customer link
+  "enrollments.customer.email",
+  "enrollments.customer.first_name",
+  "enrollments.customer.last_name",
 ]
 
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
