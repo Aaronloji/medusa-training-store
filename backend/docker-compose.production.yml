@@ -1,0 +1,63 @@
+# Production-style topology: HTTP server and background worker as separate
+# processes sharing Postgres and Redis (event bus, workflow engine, locking).
+#
+#   docker compose -f docker-compose.production.yml up --build
+#
+x-medusa-env: &medusa-env
+  NODE_ENV: production
+  DATABASE_URL: postgres://postgres:postgres@postgres:5432/medusa-training-store
+  REDIS_URL: redis://redis:6379
+  JWT_SECRET: ${JWT_SECRET:-change-me}
+  COOKIE_SECRET: ${COOKIE_SECRET:-change-me}
+  STORE_CORS: ${STORE_CORS:-http://localhost:3000}
+  ADMIN_CORS: ${ADMIN_CORS:-http://localhost:9000}
+  AUTH_CORS: ${AUTH_CORS:-http://localhost:9000,http://localhost:3000}
+  STOREFRONT_URL: ${STOREFRONT_URL:-http://localhost:3000}
+  RESEND_API_KEY: ${RESEND_API_KEY:-}
+  RESEND_FROM: ${RESEND_FROM:-}
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: medusa-training-store
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: redis:7
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 10
+
+  # Handles HTTP (store API, admin API, dashboard) and runs migrations on boot.
+  server:
+    build: .
+    environment:
+      <<: *medusa-env
+      MEDUSA_WORKER_MODE: server
+    ports:
+      - "9000:9000"
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+  # Runs subscribers, scheduled jobs and async workflow steps. No HTTP, no dashboard.
+  worker:
+    build: .
+    command: ["npm", "run", "start"]
+    environment:
+      <<: *medusa-env
+      MEDUSA_WORKER_MODE: worker
+    depends_on:
+      server: { condition: service_started }
+
+volumes:
+  pgdata:
