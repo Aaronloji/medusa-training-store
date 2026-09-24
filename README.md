@@ -6,7 +6,8 @@ A full-stack **compliance training marketplace** built on **Medusa v2**. Learner
 | --- | --- |
 | 🛒 **Storefront** | https://medusa-training-store.vercel.app |
 | 🛠️ **Admin dashboard** | https://certpath-medusa.onrender.com/app |
-| 👤 **Demo learner** | `demo@learner.com` / `demo1234` |
+| 👤 **Demo learner** (storefront) | `demo@learner.com` / `demo1234` |
+| 🔒 **Demo admin** (read-only) | `demo.admin@example.com` / `demo1234` |
 
 > The backend runs on a free Render instance. If it has been idle, the first request can take up to a minute while it wakes up; the storefront shows a banner while that happens.
 
@@ -20,6 +21,7 @@ A full-stack **compliance training marketplace** built on **Medusa v2**. Learner
 - **Scheduled job**: expires certificates every night.
 - **Custom API routes** with **Zod validation** and **customer auth middleware**. Prices are resolved per region through **`QueryContext`** and the Pricing Module.
 - **Admin extensions**: a widget on the product page and a "Courses" page in the dashboard sidebar.
+- **Read-only demo admin**: a custom `/admin/*` middleware blocks every write request from the public demo account. A **migration script** creates that account once on deploy.
 - **Digital products**: no shipping profile and no inventory, so the standard cart → payment → order flow skips shipping.
 - An **idempotent seed** (safe to run on every deploy) and unit-tested business logic.
 
@@ -117,6 +119,7 @@ If the Render build runs out of memory, set `DISABLE_ADMIN=true` to skip the adm
 - **Ownership checks return 404**, so the API never reveals that another customer's enrollment exists.
 - **Paid content is private.** The catalog never exposes `content_url`; only the learner's own enrollments do.
 - **Certificates are verifiable and expire**: a unique code, a public verification endpoint, and a nightly expiry job. Recurring certification is central to compliance training.
+- **The public admin demo is safe**: reviewers can browse the whole dashboard, but writes return `403` for the demo account, while real admins keep full access.
 - **Prices come from Medusa's Pricing Module** via `QueryContext` instead of being duplicated in the course model.
 
 ## Tests and CI
